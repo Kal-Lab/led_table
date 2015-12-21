@@ -84,7 +84,7 @@ char *index_str[4] = { "0", "1", "2", "3" };
 // Scroll text mode
 void scroll_text(const char *text) {
   static int x    = matrix.width();
-  matrix.fillScreen(0);
+  matrix.clear();
   matrix.setCursor(x, 3);
   matrix.print(text);
   if (--x < -36) {
@@ -130,7 +130,7 @@ void rain() {
   static rain_drop_t drops[NB_DROPS] = { { -1 }, { -1 }, { -1 }, { -1 } };
 
   static uint16_t bottom_line_color = rand_color();
-  matrix.fillScreen(0);
+  matrix.clear();
   for ( int i = 0; i < NB_DROPS; ++i ) {
     if ( drops[i].x0 < 0 && random(10) > 5 ) {
       drops[i].y0 = -3;
@@ -190,7 +190,7 @@ int getMode() {
     }
 
     // Splash screen when chaging mode
-    matrix.fillScreen(0);
+    matrix.clear();
     matrix.setCursor(x, 3);
     matrix.print(index_str[index]);
     matrix.show();
