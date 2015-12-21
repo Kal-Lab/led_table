@@ -48,6 +48,8 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(H, W, MATRIX_PIN,
 //   Low Performance:  neither pin has interrupt capability
 Encoder myEnc(2, 3);
 
+#define DEFAULT_BRIGHTNESS 60
+
 void setup() {
   Serial.begin(9600);
   Serial.println("LED table test:");
@@ -55,7 +57,7 @@ void setup() {
 
   // matrix init
   matrix.setTextWrap(false);
-  matrix.setBrightness(60);
+  matrix.setBrightness(DEFAULT_BRIGHTNESS);
   matrix.setTextColor(rand_color());
 }
 
@@ -76,6 +78,9 @@ uint16_t rand_color() {
 
 char *index_str[4] = { "0", "1", "2", "3" };
 
+#define INC_MOD(a, inc, mod) ( ( ( a + inc ) == mod ) ?  0 : a + inc )
+#define DEC_MOD(a, dec, mod) ( ( ( a - dec ) < 0 ) ?  mod : a - dec )
+
 // Scroll text mode
 void scroll_text(const char *text) {
   static int x    = matrix.width();
@@ -90,6 +95,29 @@ void scroll_text(const char *text) {
   delay(100);
 }
 
+#define NB_COLORS_HYPNOSE (W/2)
+uint16_t hypnose_colors[NB_COLORS_HYPNOSE] = {0};
+uint16_t hypnose_loop = 0;
+uint8_t  hypnose_index = 0;
+
+void hypnose() {
+  hypnose_index = DEC_MOD(hypnose_index, 1, NB_COLORS_HYPNOSE);
+  hypnose_colors[hypnose_index] = rand_color();
+  for ( int i = 1, index = hypnose_index; i <= NB_COLORS_HYPNOSE; ++i, index = ( index + 1 ) % NB_COLORS_HYPNOSE ) {
+    uint16_t color = hypnose_colors[index];
+    matrix.drawRect(W / 2 - i, H / 2 - i, i * 2, i * 2, color);
+  }
+  static int hypnose_brightness = 60;
+  static int hypnose_brightness_inc = -5;
+  if ( hypnose_brightness >= 60 )
+    hypnose_brightness_inc = -5;
+  else if ( hypnose_brightness <= 20 )
+    hypnose_brightness_inc = 5;
+  hypnose_brightness += hypnose_brightness_inc;
+  matrix.setBrightness(hypnose_brightness);
+  matrix.show();
+  delay(100);
+}
 
 void rain() {
 #define NB_DROPS 4
@@ -153,6 +181,7 @@ int getMode() {
       x = -5;
       splash = 0;
       anim = true;
+      matrix.setBrightness(DEFAULT_BRIGHTNESS);
       oldPosition = newPosition;
       Serial.println(index);
     }
@@ -183,13 +212,18 @@ void loop() {
 
   int mode = getMode();
   // Call the function accoring to mode.
-  if ( mode == 0 || mode == 1 ) {
-    rain();
-  }
-  else if ( mode == 2 ) {
-    scroll_text("Poulet!");
-  }
-  else {
-    scroll_text("ERROR!");
+  switch (mode) {
+    case 0:
+      rain();
+      break;
+    case 1:
+      hypnose();
+      break;
+    case 2:
+      scroll_text("Poulet!");
+      break;
+    case 3:
+      scroll_text("ERROR!");
+      break;
   }
 }
