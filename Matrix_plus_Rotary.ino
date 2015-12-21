@@ -132,42 +132,61 @@ void rain() {
 #define NB_MODES 4
 #define DEFAULT_MODE 0
 
-void loop() {
+int getMode() {
   static int index = DEFAULT_MODE;
-  bool index_changed = false;
-  
-  long newPosition = myEnc.read();
-  static long oldPosition  = newPosition;
-  
-  if (newPosition != oldPosition) {
-    index_changed = true;
+  static long oldPosition = myEnc.read();
+  bool anim = false;
+  int x = 0;
+  int splash = 0;
 
-    if (newPosition > oldPosition) {
-      index = (index == 0) ? NB_MODES - 1 : index - 1;
-    }
-    else {
-      index = (index + 1) % NB_MODES;
-    }
-    Serial.println(index);
-  }
+  do {
 
-  // Splash screen when chaging mode
-  if ( index_changed ) {
+    long newPosition = myEnc.read();
+
+    if (newPosition != oldPosition) {
+      if (newPosition > oldPosition) {
+        index = (index == 0) ? NB_MODES - 1 : index - 1;
+      }
+      else {
+        index = (index + 1) % NB_MODES;
+      }
+      x = -5;
+      splash = 0;
+      anim = true;
+      oldPosition = newPosition;
+      Serial.println(index);
+    }
+    if ( anim == false ) {
+      return index;
+    }
+
+    // Splash screen when chaging mode
     matrix.fillScreen(0);
-    matrix.setCursor(3, 3);
+    matrix.setCursor(x, 3);
     matrix.print(index_str[index]);
     matrix.show();
-    delay(1000);
-  }
-  
-  // Needed, to avoid garbage
-  oldPosition = myEnc.read();
+    if ( x < 4 ) {
+      x++;
+    }
+    else {
+      if ( ++splash >= 5 ) {
+        anim = false;
+      }
+    }
+    delay(100);
+  } while ( anim );
+  return index;
+}
 
+
+void loop() {
+
+  int mode = getMode();
   // Call the function accoring to mode.
-  if ( index == 0 || index == 1 ) {
+  if ( mode == 0 || mode == 1 ) {
     rain();
   }
-  else if ( index == 2 ) {
+  else if ( mode == 2 ) {
     scroll_text("Poulet!");
   }
   else {
