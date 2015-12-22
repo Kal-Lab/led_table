@@ -168,6 +168,13 @@ class Sprite {
     virtual void draw() {}
 };
 
+class Point : public Sprite {
+  public:
+    void draw() {
+      matrix.drawPixel(m_x0, m_y0, m_color);
+    }
+};
+
 class Line : public Sprite {
   public:
     void draw() {
@@ -183,7 +190,7 @@ void rain() {
   matrix.clear();
 
   matrix.drawFastHLine(0, H - 1, W, bottom_line_color);
-  
+
   for ( int i = 0; i < NB_DROPS; ++i ) {
     if ( !drops[i].is_enabled() && random(10) > 5 ) {
       int x = random(W);
@@ -200,6 +207,55 @@ void rain() {
       drops[i].draw();
   }
 
+  matrix.show();
+  delay(100);
+}
+
+Line racket[2];
+Point ball;
+int8_t ball_dir_w = 1, ball_dir_h = 1;
+
+void pong() {
+  if ( !ball.is_enabled() ) {
+    ball.set(0, 6, 0, 0, matrix.Color(255, 255, 255));
+    ball.enable();
+  }
+  if ( !racket[0].is_enabled() ) {
+    racket[0].set(0, 5, 0, 7, matrix.Color(255, 0, 0));
+    racket[0].enable();
+  }
+  if ( !racket[1].is_enabled() ) {
+    racket[1].set(11, 5, 11, 7, matrix.Color(0, 255, 0));
+    racket[1].enable();
+  }
+
+  if ( ball.x0() <= 1 )
+    ball_dir_w = 1;
+  else if ( ball.x0() >= W - 2 )
+    ball_dir_w = -1;
+
+  if ( ball.y0() <= 0 )
+    ball_dir_h = 1;
+  else if ( ball.y0() >= H - 1 )
+    ball_dir_h = -1;
+
+  ball.move(ball_dir_w, ball_dir_h);
+
+  Line *racket_move;
+  if ( ball_dir_w == 1 )
+    racket_move = &racket[1];
+  else
+    racket_move = &racket[0];
+
+  if ( racket_move->y0() + 1 < ball.y0() )
+    racket_move->move(0, 1);
+  else if ( racket_move->y0() + 1 > ball.y0() )
+    racket_move->move(0, -1);
+    
+  matrix.clear();
+  ball.draw();
+  racket[0].draw();
+  racket[1].draw();
   matrix.show();
   delay(100);
 }
@@ -267,7 +323,7 @@ void loop() {
       hypnose();
       break;
     case 2:
-      scroll_text("Poulet!");
+      pong();
       break;
     case 3:
       scroll_text("ERROR!");
