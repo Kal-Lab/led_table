@@ -119,40 +119,87 @@ void hypnose() {
   delay(100);
 }
 
-void rain() {
+class Sprite {
+  public:
+    int8_t m_x0, m_x1, m_y0, m_y1;
+    uint16_t m_color;
+    bool m_enable;
+  public:
+    Sprite() {
+      m_enable = false;
+    }
+    void set(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint16_t color) {
+      m_x0 = x0;
+      m_x1 = x1;
+      m_y0 = y0;
+      m_y1 = y1;
+      m_color = color;
+    }
+    void move(int8_t x, int8_t y) {
+      m_x0 += x;
+      m_x1 += x;
+      m_y0 += y;
+      m_y1 += y;
+    }
+    void enable() {
+      m_enable = true;
+    }
+    void disable() {
+      m_enable = false;
+    }
+    bool is_enabled() {
+      return m_enable;
+    }
+    int8_t x0() {
+      return m_x0;
+    };
+    int8_t x1() {
+      return m_x1;
+    };
+    int8_t y0() {
+      return m_y0;
+    };
+    int8_t y1() {
+      return m_y1;
+    };
+    uint16_t color() {
+      return m_color;
+    };
+    virtual void draw() {}
+};
+
+class Line : public Sprite {
+  public:
+    void draw() {
+      matrix.drawLine(m_x0, m_y0, m_x1, m_y1, m_color);
+    }
+};
+
 #define NB_DROPS 4
+Line drops[NB_DROPS];
 
-  typedef struct {
-    int8_t x0, x1, y0, y1;
-    uint16_t color;
-  } rain_drop_t;
-
-  static rain_drop_t drops[NB_DROPS] = { { -1 }, { -1 }, { -1 }, { -1 } };
-
+void rain() {
   static uint16_t bottom_line_color = rand_color();
   matrix.clear();
-  for ( int i = 0; i < NB_DROPS; ++i ) {
-    if ( drops[i].x0 < 0 && random(10) > 5 ) {
-      drops[i].y0 = -3;
-      drops[i].y1 = -1;
-      int x = random(W);
-      drops[i].x0 = x;
-      drops[i].x1 = x;
-      drops[i].color = rand_color();
-    }
-    drops[i].y0++;
-    drops[i].y1++;
 
-    if ( drops[i].y1 == 11 ) {
-      drops[i].x0 = -1;
-      bottom_line_color = drops[i].color;
-    }
-
-    if ( drops[i].x0 >= 0 ) {
-      matrix.drawLine(drops[i].x0, drops[i].y0, drops[i].x1, drops[i].y1, drops[i].color);
-    }
-  }
   matrix.drawFastHLine(0, H - 1, W, bottom_line_color);
+  
+  for ( int i = 0; i < NB_DROPS; ++i ) {
+    if ( !drops[i].is_enabled() && random(10) > 5 ) {
+      int x = random(W);
+      drops[i].set(x, -3, x, -1, rand_color());
+      drops[i].enable();
+    }
+    drops[i].move(0, 1);
+
+    if ( drops[i].y0() == 11 ) {
+      drops[i].disable();
+      bottom_line_color = drops[i].color();
+    }
+    if ( drops[i].is_enabled() )
+      drops[i].draw();
+  }
+
   matrix.show();
   delay(100);
 }
