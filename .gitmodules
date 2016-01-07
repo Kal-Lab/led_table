@@ -1,0 +1,12 @@
+[submodule "libs/RotaryEncoder"]
+	path = libs/RotaryEncoder
+	url = https://github.com/mathertel/RotaryEncoder/
+[submodule "libs/Adafruit_NeoMatrix"]
+	path = libs/Adafruit_NeoMatrix
+	url = https://github.com/adafruit/Adafruit_NeoMatrix
+[submodule "libs/Adafruit_NeoPixel"]
+	path = libs/Adafruit_NeoPixel
+	url = https://github.com/adafruit/Adafruit_NeoPixel
+[submodule "libs/Adafruit-GFX-Library"]
+	path = libs/Adafruit-GFX-Library
+	url = https://github.com/adafruit/Adafruit-GFX-Library

@@ -4,9 +4,9 @@
 // https://github.com/adafruit/Adafruit_NeoPixel
 // https://github.com/adafruit/Adafruit-GFX-Library
 // RotaryEncoder library
-// http://www.pjrc.com/teensy/td_libs_Encoder.html
+// https://github.com/mathertel/RotaryEncoder
 
-#include <Encoder.h>
+#include <RotaryEncoder.h>
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
@@ -42,23 +42,10 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(H, W, MATRIX_PIN,
                             NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG,
                             NEO_GRB            + NEO_KHZ800);
 
-// Change these two numbers to the pins connected to your encoder.
-//   Best Performance: both pins have interrupt capability
-//   Good Performance: only the first pin has interrupt capability
-//   Low Performance:  neither pin has interrupt capability
-Encoder myEnc(2, 3);
-
-#define DEFAULT_BRIGHTNESS 60
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("LED table test:");
-  matrix.begin();
-
-  // matrix init
-  matrix.setTextWrap(false);
-  matrix.setBrightness(DEFAULT_BRIGHTNESS);
-  matrix.setTextColor(rand_color());
+RotaryEncoder encoder(2, 3);
+ 
+void it_handler() {
+	  encoder.tick();
 }
 
 // return a random color
@@ -76,6 +63,36 @@ uint16_t rand_color() {
   return matrix.Color(red, green, blue);
 }
 
+#define DEFAULT_BRIGHTNESS 60
+#define NB_MODES 4
+#define DEFAULT_MODE 0
+
+int scroll_text_x;
+uint16_t bottom_line_color;
+int last_mode;
+long oldPosition;
+
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("LED table test:");
+  matrix.begin();
+
+  // matrix init
+  matrix.setTextWrap(false);
+  matrix.setBrightness(DEFAULT_BRIGHTNESS);
+  matrix.setTextColor(rand_color());
+
+  // rotary init
+  attachInterrupt(0, it_handler, CHANGE);
+  attachInterrupt(1, it_handler, CHANGE);
+
+  scroll_text_x = matrix.width();
+  bottom_line_color = rand_color();
+  last_mode = DEFAULT_MODE;
+  oldPosition = encoder.getPosition();
+}
+
 char *index_str[4] = { "0", "1", "2", "3" };
 
 #define INC_MOD(a, inc, mod) ( ( ( a + inc ) == mod ) ?  0 : a + inc )
@@ -83,12 +100,11 @@ char *index_str[4] = { "0", "1", "2", "3" };
 
 // Scroll text mode
 void scroll_text(const char *text) {
-  static int x    = matrix.width();
   matrix.clear();
-  matrix.setCursor(x, 3);
+  matrix.setCursor(scroll_text_x, 3);
   matrix.print(text);
-  if (--x < -36) {
-    x = matrix.width();
+  if (--scroll_text_x < -36) {
+    scroll_text_x = matrix.width();
     matrix.setTextColor(rand_color());
   }
   matrix.show();
@@ -100,6 +116,8 @@ uint16_t hypnose_colors[NB_COLORS_HYPNOSE] = {0};
 uint16_t hypnose_loop = 0;
 uint8_t  hypnose_index = 0;
 
+int hypnose_brightness = 60;
+int hypnose_brightness_inc = -5;
 void hypnose() {
   hypnose_index = DEC_MOD(hypnose_index, 1, NB_COLORS_HYPNOSE);
   hypnose_colors[hypnose_index] = rand_color();
@@ -107,8 +125,6 @@ void hypnose() {
     uint16_t color = hypnose_colors[index];
     matrix.drawRect(W / 2 - i, H / 2 - i, i * 2, i * 2, color);
   }
-  static int hypnose_brightness = 60;
-  static int hypnose_brightness_inc = -5;
   if ( hypnose_brightness >= 60 )
     hypnose_brightness_inc = -5;
   else if ( hypnose_brightness <= 20 )
@@ -186,7 +202,6 @@ class Line : public Sprite {
 Line drops[NB_DROPS];
 
 void rain() {
-  static uint16_t bottom_line_color = rand_color();
   matrix.clear();
 
   matrix.drawFastHLine(0, H - 1, W, bottom_line_color);
@@ -260,42 +275,37 @@ void pong() {
   delay(100);
 }
 
-#define NB_MODES 4
-#define DEFAULT_MODE 0
-
 int getMode() {
-  static int index = DEFAULT_MODE;
-  static long oldPosition = myEnc.read();
   bool anim = false;
   int x = 0;
   int splash = 0;
 
   do {
 
-    long newPosition = myEnc.read();
+    long newPosition = encoder.getPosition();
 
     if (newPosition != oldPosition) {
       if (newPosition > oldPosition) {
-        index = (index == 0) ? NB_MODES - 1 : index - 1;
+        last_mode = (last_mode == 0) ? NB_MODES - 1 : last_mode - 1;
       }
       else {
-        index = (index + 1) % NB_MODES;
+        last_mode = (last_mode + 1) % NB_MODES;
       }
       x = -5;
       splash = 0;
       anim = true;
       matrix.setBrightness(DEFAULT_BRIGHTNESS);
       oldPosition = newPosition;
-      Serial.println(index);
+      Serial.println(last_mode);
     }
     if ( anim == false ) {
-      return index;
+      return last_mode;
     }
 
     // Splash screen when chaging mode
     matrix.clear();
     matrix.setCursor(x, 3);
-    matrix.print(index_str[index]);
+    matrix.print(index_str[last_mode]);
     matrix.show();
     if ( x < 4 ) {
       x++;
@@ -307,7 +317,7 @@ int getMode() {
     }
     delay(100);
   } while ( anim );
-  return index;
+  return last_mode;
 }
 
 
@@ -326,7 +336,7 @@ void loop() {
       pong();
       break;
     case 3:
-      scroll_text("ERROR!");
+      scroll_text("POULET!");
       break;
   }
 }
